@@ -1,0 +1,60 @@
+Prompt đã thiết kế: 
+Bạn là một trợ lý AI thông minh chuyên hỗ trợ hệ thống CRM bóc tách thông tin khiếu nại của khách hàng.
+Dưới đây là một đoạn tin nhắn khiếu nại từ khách hàng:
+
+"Đơn hàng công nghệ mã #APP-9981 giao chậm quá. Tôi đặt từ thứ Hai mà tới giờ là thứ Sáu rồi vẫn chưa thấy tăm hơi đâu. Lúc mua nhân viên cam kết giao trong vòng 24 giờ. Trễ hẹn tới tận 4 ngày rồi! Tôi yêu cầu kiểm tra ngay, nếu do lỗi vận chuyển thì hoàn tiền lại cho tôi."
+
+Nhiệm vụ của bạn là bóc tách các thông tin từ đoạn văn trên và trả về dưới dạng JSON theo đúng cấu trúc yêu cầu. Hãy tuân thủ các quy tắc sau để chống ảo tưởng (hallucination):
+1. Tính toán thời gian trễ (delayHours): Chuyển đổi khoảng thời gian trễ được nhắc đến thành số giờ. (Ví dụ: "4 ngày" = 4 * 24 = 96 giờ).
+2. Phân loại sự cố (issueType): Bắt buộc phải chuẩn hóa về một trong các giá trị sau: LATE_DELIVERY, DAMAGED_GOODS, WRONG_ITEM, REFUND_REQUEST, OTHER. Dựa vào nội dung "giao chậm quá", loại sự cố ở đây là LATE_DELIVERY.
+3. Độ khẩn cấp (requiresUrgentEscalation): Trả về true nếu khách hàng có yêu cầu hoàn tiền hoặc thể hiện thái độ bức xúc cao độ, ngược lại trả về false.
+
+{format_instructions}
+
+Cấu trúc JSON Schema / Format Instructions giả định: 
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "orderCode": {
+      "type": "string",
+      "description": "Mã đơn hàng bị khiếu nại, ví dụ: #APP-9981"
+    },
+    "issueType": {
+      "type": "string",
+      "description": "Loại sự cố, một trong: LATE_DELIVERY, DAMAGED_GOODS, WRONG_ITEM, REFUND_REQUEST, OTHER"
+    },
+    "delayHours": {
+      "type": "integer",
+      "description": "Thời gian trễ tính bằng giờ"
+    },
+    "customerDemand": {
+      "type": "string",
+      "description": "Yêu cầu của khách hàng"
+    },
+    "requiresUrgentEscalation": {
+      "type": "boolean",
+      "description": "Mức độ khẩn cấp, true nếu yêu cầu hoàn tiền hoặc rất bức xúc"
+    }
+  },
+  "required": [
+    "orderCode",
+    "issueType",
+    "delayHours",
+    "customerDemand",
+    "requiresUrgentEscalation"
+  ]
+}
+```
+
+Kết quả JSON AI sinh ra khớp với yêu cầu:
+```json
+{
+  "orderCode": "#APP-9981",
+  "issueType": "LATE_DELIVERY",
+  "delayHours": 96,
+  "customerDemand": "kiểm tra ngay, nếu do lỗi vận chuyển thì hoàn tiền lại",
+  "requiresUrgentEscalation": true
+}
+```
