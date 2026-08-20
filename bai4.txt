@@ -1,60 +1,80 @@
-Prompt đã thiết kế: 
-Bạn là một trợ lý AI thông minh chuyên hỗ trợ hệ thống CRM bóc tách thông tin khiếu nại của khách hàng.
-Dưới đây là một đoạn tin nhắn khiếu nại từ khách hàng:
+[PHẦN 1: PROMPT ĐÃ THIẾT KẾ]
+Bạn là một trợ lý AI chuyên bóc tách dữ liệu khiếu nại khách hàng cho hệ thống CRM.
+Nhiệm vụ của bạn là phân tích đoạn văn bản khiếu nại tự do của khách hàng và trích xuất thông tin thành cấu trúc JSON chính xác theo hướng dẫn dưới đây.
 
-"Đơn hàng công nghệ mã #APP-9981 giao chậm quá. Tôi đặt từ thứ Hai mà tới giờ là thứ Sáu rồi vẫn chưa thấy tăm hơi đâu. Lúc mua nhân viên cam kết giao trong vòng 24 giờ. Trễ hẹn tới tận 4 ngày rồi! Tôi yêu cầu kiểm tra ngay, nếu do lỗi vận chuyển thì hoàn tiền lại cho tôi."
+ĐOẠN VĂN BẢN KHIẾU NẠI:
+"""
+Đơn hàng công nghệ mã #APP-9981 giao chậm quá. Tôi đặt từ thứ Hai mà tới giờ là thứ Sáu rồi vẫn chưa thấy tăm hơi đâu. 
+Lúc mua nhân viên cam kết giao trong vòng 24 giờ. Trễ hẹn tới tận 4 ngày rồi! Tôi yêu cầu kiểm tra ngay, 
+nếu do lỗi vận chuyển thì hoàn tiền lại cho tôi.
+"""
 
-Nhiệm vụ của bạn là bóc tách các thông tin từ đoạn văn trên và trả về dưới dạng JSON theo đúng cấu trúc yêu cầu. Hãy tuân thủ các quy tắc sau để chống ảo tưởng (hallucination):
-1. Tính toán thời gian trễ (delayHours): Chuyển đổi khoảng thời gian trễ được nhắc đến thành số giờ. (Ví dụ: "4 ngày" = 4 * 24 = 96 giờ).
-2. Phân loại sự cố (issueType): Bắt buộc phải chuẩn hóa về một trong các giá trị sau: LATE_DELIVERY, DAMAGED_GOODS, WRONG_ITEM, REFUND_REQUEST, OTHER. Dựa vào nội dung "giao chậm quá", loại sự cố ở đây là LATE_DELIVERY.
-3. Độ khẩn cấp (requiresUrgentEscalation): Trả về true nếu khách hàng có yêu cầu hoàn tiền hoặc thể hiện thái độ bức xúc cao độ, ngược lại trả về false.
+QUY TẮC BÓC TÁCH & XỬ LÝ BẪY DỮ LIỆU:
+1. orderCode:
+   - Trích xuất mã đơn hàng có trong bài (ví dụ: "APP-9981" hoặc "#APP-9981").
 
+2. issueType:
+   - BẮT BUỘC chỉ chọn 1 trong các giá trị Enum sau: LATE_DELIVERY, DAMAGED_GOODS, WRONG_ITEM, REFUND_REQUEST, OTHER.
+   - Khiếu nại giao chậm / trễ hẹn phải quy về: "LATE_DELIVERY".
+
+3. delayHours:
+   - Tính toán và quy đổi tổng số giờ trễ hẹn ra số nguyên (integer).
+   - Quy đổi từ số ngày trễ hẹn thực tế: "4 ngày" = 4 * 24 = 96 (giờ). 
+   - Đầu ra của trường này phải là số nguyên 96.
+
+4. customerDemand:
+   - Tóm tắt ngắn gọn nhu cầu/yêu cầu cụ thể của khách hàng (VD: "Yêu cầu kiểm tra ngay và hoàn tiền nếu do lỗi vận chuyển").
+
+5. requiresUrgentEscalation:
+   - Trả về true nếu khách hàng yêu cầu hoàn tiền HOẶC thể hiện thái độ rất bức xúc/khiếu nại gắt gao.
+   - Trả về false nếu không thuộc trường hợp trên.
+   - Ở trường hợp này, khách hàng yêu cầu hoàn tiền và rất bức xúc -> Trả về true.
+
+ĐỊNH DẠNG ĐẦU RA (FORMAT INSTRUCTIONS):
 {format_instructions}
 
-Cấu trúc JSON Schema / Format Instructions giả định: 
-```json
+
+[PHẦN 2: CẤU TRÚC JSON SCHEMA / FORMAT INSTRUCTIONS GIẢ ĐỊNH FROM BEANOUTPUTCONVERTER]
+Your response must be in JSON format.
+Do not include any markdown code blocks, explanation, or extra text outside the JSON.
+Follow this JSON Schema definition:
+
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ComplaintExtraction",
   "type": "object",
   "properties": {
     "orderCode": {
       "type": "string",
-      "description": "Mã đơn hàng bị khiếu nại, ví dụ: #APP-9981"
+      "description": "Mã đơn hàng được nhắc đến trong khiếu nại"
     },
     "issueType": {
       "type": "string",
-      "description": "Loại sự cố, một trong: LATE_DELIVERY, DAMAGED_GOODS, WRONG_ITEM, REFUND_REQUEST, OTHER"
+      "enum": ["LATE_DELIVERY", "DAMAGED_GOODS", "WRONG_ITEM", "REFUND_REQUEST", "OTHER"],
+      "description": "Loại sự cố chính"
     },
     "delayHours": {
       "type": "integer",
-      "description": "Thời gian trễ tính bằng giờ"
+      "description": "Số giờ trễ hẹn (đã quy đổi từ ngày/giờ trễ)"
     },
     "customerDemand": {
       "type": "string",
-      "description": "Yêu cầu của khách hàng"
+      "description": "Yêu cầu xử lý của khách hàng"
     },
     "requiresUrgentEscalation": {
       "type": "boolean",
-      "description": "Mức độ khẩn cấp, true nếu yêu cầu hoàn tiền hoặc rất bức xúc"
+      "description": "Trạng thái cần leo thang xử lý gấp"
     }
   },
-  "required": [
-    "orderCode",
-    "issueType",
-    "delayHours",
-    "customerDemand",
-    "requiresUrgentEscalation"
-  ]
+  "required": ["orderCode", "issueType", "delayHours", "customerDemand", "requiresUrgentEscalation"]
 }
-```
 
-Kết quả JSON AI sinh ra khớp với yêu cầu:
-```json
+
+[PHẦN 3: KẾT QUẢ JSON AI SINH RA KHỚP VỚI YÊU CẦU]
 {
-  "orderCode": "#APP-9981",
+  "orderCode": "APP-9981",
   "issueType": "LATE_DELIVERY",
   "delayHours": 96,
-  "customerDemand": "kiểm tra ngay, nếu do lỗi vận chuyển thì hoàn tiền lại",
+  "customerDemand": "Kiểm tra đơn hàng ngay và hoàn tiền nếu do lỗi vận chuyển",
   "requiresUrgentEscalation": true
 }
-```
